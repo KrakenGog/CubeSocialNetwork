@@ -1,0 +1,39 @@
+spring:
+  docker:
+    compose:  
+      enabled: true
+      file: ../docker-compose.yml 
+      lifecycle-management: start_only
+  application:
+    name: user-service
+  datasource:
+    url: jdbc:postgresql://localhost:5435/user_service
+    driver-class-name: org.postgresql.Driver
+    username: admin
+    password: root
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+  kafka:
+    bootstrap-servers: localhost:9094
+    consumer:
+      group-id: user-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+server:
+  port: 0
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.value}
+    non-secure-port: ${server.port}
+

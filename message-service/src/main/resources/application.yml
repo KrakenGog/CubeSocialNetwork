@@ -1,0 +1,56 @@
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: null
+      database: 0
+      timeout: 6000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  docker:
+    compose:  
+      enabled: true
+      file: ../docker-compose.yml 
+      lifecycle-management: start_only
+  application:
+    name: message-service
+  datasource:
+    url: jdbc:postgresql://localhost:5435/user_service
+    driver-class-name: org.postgresql.Driver
+    username: admin
+    password: root
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+  kafka:
+    bootstrap-servers: localhost:9094
+    consumer:
+      group-id: user-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+server:
+  port: 0
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.value}
+    non-secure-port: ${server.port}
+    lease-renewal-interval-in-seconds: 5
+
+chat:
+  cache:
+    lifetime: 30
+    size : 50

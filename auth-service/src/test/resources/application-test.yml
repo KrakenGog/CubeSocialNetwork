@@ -1,0 +1,56 @@
+spring:
+  docker:
+    compose:
+      enabled: false
+  application:
+    name: auth-service-test
+
+  # 1. Настройка Базы Данных (H2 в памяти)
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop # Создает таблицы при старте и удаляет при финише
+    show-sql: true # Полезно видеть SQL в тестах при отладке
+
+  # 2. Настройка Kafka (Магия Embedded)
+  kafka:
+    # Эта переменная автоматически заполняется аннотацией @EmbeddedKafka
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+    producer:
+      # Auth Service отправляет JSON как строку, поэтому StringSerializer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      # На случай, если ты захочешь что-то прочитать в тесте
+      group-id: test-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+# 3. Отключаем лишние сервисы
+eureka:
+  client:
+    enabled: false # В тестах нам не нужно регистрироваться в Discovery Service
+    register-with-eureka: false
+    fetch-registry: false
+
+# 4. Настройка JWT (Копия из основного, чтобы контекст поднялся)
+jwt:
+  secret: MySuperSecretKeyWhichMustBeVeryLongAndComplex1234567890
+  lifetime: 86400000
+
+# 5. ХИТРОСТЬ: Останавливаем автоматический Outbox Scheduler
+outbox:
+  # Ставим интервал в 100 лет (в миллисекундах).
+  # Это нужно, чтобы @Scheduled не запускался сам и не мешал нам вызывать .handle() вручную.
+  interval: 3153600000000 
+
+logging:
+  level:
+    root: ERROR
+    com.kraken: DEBUG # Видим свои логи, но не видим мусор от Spring

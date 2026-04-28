@@ -1,0 +1,9 @@
+rootProject.name = 'cube'
+
+include 'common-classes'
+include 'user-service'
+include 'auth-service'
+include 'discovery-service'
+include 'api-gateway'
+include 'outbox-message-lib'
+include 'message-service'

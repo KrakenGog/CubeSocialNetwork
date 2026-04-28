@@ -1,0 +1,40 @@
+spring:
+  docker:
+    compose:  
+      enabled: true
+      file: ../docker-compose.yml 
+      lifecycle-management: start_only
+  application:
+    name: auth-service
+  datasource:
+    url: jdbc:postgresql://localhost:5435/user_service
+    driver-class-name: org.postgresql.Driver
+    username: admin
+    password: root
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+  kafka:
+    bootstrap-servers: localhost:9094
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: 0
+  
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+jwt:
+  secret: MySuperSecretKeyWhichMustBeVeryLongAndComplex1234567890
+  lifetime: 86400000
+
+logging:
+  level: 
+    org.springframework.boot.docker.compose: DEBUG
