@@ -9,7 +9,7 @@ import com.kraken.cube.auth.dto.TokenResponseDto;
 import com.kraken.cube.auth.entity.UserAuth;
 import com.kraken.cube.auth.repository.UserAuthRepository;
 import com.kraken.cube.auth.service.AuthService;
-import com.kraken.cube.auth.util.JwtUtil;
+import com.kraken.cube.auth.util.JwtUtilAuth;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +34,7 @@ public class AuthController {
 
         private final AuthenticationManager authenticationManager;
         private final UserAuthRepository userAuthRepository;
-        private final JwtUtil jwtUtil;
+        private final JwtUtilAuth jwtUtil;
         private final AuthService authService;
 
         @PostMapping("/login")

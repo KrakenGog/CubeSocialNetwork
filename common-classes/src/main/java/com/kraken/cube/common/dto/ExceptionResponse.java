@@ -19,13 +19,15 @@ public class ExceptionResponse {
     private String error;
     private String message;
     private String path;
+    private String buisnessStatus;
 
 
-    public ExceptionResponse(HttpStatus status, String message, String path){
+    public ExceptionResponse(HttpStatus status, String message, String path, String buisnessStatus){
         this.time = LocalDateTime.now();
         this.status = status.value();
         this.error = status.getReasonPhrase();
         this.message = message;
         this.path = path;
+        this.buisnessStatus = buisnessStatus;
     }
 }

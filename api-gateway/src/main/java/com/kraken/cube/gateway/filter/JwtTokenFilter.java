@@ -1,6 +1,6 @@
 package com.kraken.cube.gateway.filter;
 
-import com.kraken.cube.gateway.util.JwtUtil;
+import com.kraken.cube.gateway.util.JwtUtilA;
 import io.jsonwebtoken.Claims;
 
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class JwtTokenFilter implements WebFilter {
 
-    private final JwtUtil jwtUtil;
+    private final JwtUtilA jwtUtil;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
@@ -45,7 +45,7 @@ public class JwtTokenFilter implements WebFilter {
 
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                         username, null, authorities);
-                String s = roles.stream().collect(Collectors.joining(","));
+                
                 ServerHttpRequest mutatedRequest = exchange.getRequest().mutate().header("X-User-Name", username)
                         .header("X-User-Id", claims.get("id", Integer.class).toString())
                         .header("X-User-Roles", roles.stream().collect(Collectors.joining(","))).build();

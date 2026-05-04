@@ -2,81 +2,168 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>WebSocket Test</title>
-    <!-- Подключаем SockJS и STOMP -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <title>STOMP WebSocket Tester</title>
+    <!-- Подключаем библиотеку stomp.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input[type="text"], textarea { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        textarea { height: 100px; resize: vertical; font-family: monospace; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        #log { background-color: #2b2b2b; color: #a9b7c6; padding: 10px; height: 300px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; }
+        .status-disconnected { color: red; font-weight: bold; }
+        .status-connected { color: green; font-weight: bold; }
+    </style>
 </head>
 <body>
-    <h2>Тест WebSocket: Cube Message Controller</h2>
-    
-    <div>
-        <button onclick="connect()">1. Подключиться</button>
-        <button onclick="disconnect()" disabled id="disconnectBtn">Отключиться</button>
-    </div>
-    <br>
-    <div>
-        <input type="text" id="messageText" placeholder="Введите текст сообщения">
-        <button onclick="sendMessage()" disabled id="sendBtn">2. Отправить</button>
-    </div>
-    
-    <div id="logs" style="margin-top: 20px; font-family: monospace; color: green;"></div>
 
-    <script>
-        let stompClient = null;
+<div class="container">
+    <h2>STOMP WebSocket Tester</h2>
 
-        function log(message) {
-            document.getElementById('logs').innerHTML += message + '<br>';
-            console.log(message);
+    <div class="section">
+        <h3>1. Настройки подключения</h3>
+        <!-- Если у тебя отключен SockJS, путь должен быть ws://localhost:8080/ws -->
+        <!-- Если включен SockJS, путь должен быть ws://localhost:8080/ws/websocket -->
+        <label>URL</label>
+        <input type="text" id="wsUrl" value="ws://localhost:8080/ws">
+
+        <label>JWT Token (без слова Bearer)</label>
+        <input type="text" id="jwtToken" placeholder="eyJhbGciOiJIUzI1NiIsInR...">
+
+        <p>Статус: <span id="status" class="status-disconnected">Отключен</span></p>
+        <button id="btnConnect" onclick="connect()">Подключиться</button>
+        <button id="btnDisconnect" onclick="disconnect()" disabled>Отключиться</button>
+    </div>
+
+    <div class="section">
+        <h3>2. Чат и Сообщения</h3>
+        <label>Chat ID (для подписки на /topic/chat.{chatId})</label>
+        <input type="text" id="chatId" value="1">
+
+        <label>Destination отправки (по умолчанию /app/chat.sendMessage)</label>
+        <input type="text" id="sendDestination" value="/app/chat.sendMessage">
+
+        <label>JSON Тело сообщения (CreateMessageRequest)</label>
+        <textarea id="messagePayload">{
+  "chatId": 1,
+  "payload": "Привет, это тестовое сообщение!"
+}</textarea>
+
+        <button id="btnSend" onclick="sendMessage()" disabled>Отправить сообщение</button>
+    </div>
+
+    <div class="section">
+        <h3>Логи</h3>
+        <div id="log"></div>
+    </div>
+</div>
+
+<script>
+    let stompClient = null;
+    let currentSubscription = null;
+
+    function log(message) {
+        const logDiv = document.getElementById('log');
+        const time = new Date().toLocaleTimeString();
+        logDiv.innerHTML += `[${time}] ${message}\n`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function updateStatus(connected) {
+        const statusSpan = document.getElementById('status');
+        const btnConnect = document.getElementById('btnConnect');
+        const btnDisconnect = document.getElementById('btnDisconnect');
+        const btnSend = document.getElementById('btnSend');
+
+        if (connected) {
+            statusSpan.textContent = 'Подключен';
+            statusSpan.className = 'status-connected';
+            btnConnect.disabled = true;
+            btnDisconnect.disabled = false;
+            btnSend.disabled = false;
+        } else {
+            statusSpan.textContent = 'Отключен';
+            statusSpan.className = 'status-disconnected';
+            btnConnect.disabled = false;
+            btnDisconnect.disabled = true;
+            btnSend.disabled = true;
+        }
+    }
+
+    function connect() {
+        const url = document.getElementById('wsUrl').value;
+        const token = document.getElementById('jwtToken').value;
+        const chatId = document.getElementById('chatId').value;
+
+        if (!url) {
+            alert("Введите URL!");
+            return;
         }
 
-        function connect() {
-            // Укажите ваш порт (по умолчанию 8080)
-            const socket = new SockJS('http://localhost:8080/ws');
-            stompClient = Stomp.over(socket);
+        log("Попытка подключения к: " + url);
+        
+        const socket = new WebSocket(url);
+        stompClient = Stomp.over(socket);
 
-            // Если у вас JWT авторизация, то токен передается в заголовках здесь:
-            const headers = {
-                 'Authorization': 'Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJsZXNoYTEyMyIsImlhdCI6MTc3NDg3NDM2OCwicm9sZXMiOlsiUk9MRV9VU0VSIl0sImlkIjoxMCwiZXhwIjoxNzc0OTYwNzY4fQ.v5HXEwqtUBY17oiILt2WCvPoES8MZNErUzHjwXpiL-2uOeINjE8FMPzNwA9Qn66L' 
-            };
+        const headers = {};
+        if (token) {
+            headers['Authorization'] = 'Bearer ' + token;
+        }
 
-            stompClient.connect(headers, function (frame) {
-                log('Успешно подключено: ' + frame);
-                document.getElementById('disconnectBtn').disabled = false;
-                document.getElementById('sendBtn').disabled = false;
+        stompClient.connect(headers, function (frame) {
+            log("STOMP соединение установлено!");
+            updateStatus(true);
 
-                // Если вы хотите СЛУШАТЬ входящие сообщения (зависит от того, куда ваш MessageService их отправляет)
-                // stompClient.subscribe('/topic/chat.1', function (response) {
-                //     log('Получено сообщение: ' + response.body);
-                // });
+            // Подписываемся на топик чата
+            const topicPath = '/topic/chat.' + chatId;
+            log("Подписываемся на: " + topicPath);
+            
+            currentSubscription = stompClient.subscribe(topicPath, function (message) {
+                log("📩 Получено сообщение:\n" + JSON.stringify(JSON.parse(message.body), null, 2));
+            });
 
-            }, function(error) {
-                log('<span style="color:red">Ошибка подключения: ' + error + '</span>');
+        }, function (error) {
+            log("❌ Ошибка соединения или отключено сервером:\n" + error);
+            updateStatus(false);
+        });
+    }
+
+    function disconnect() {
+        if (stompClient !== null) {
+            if (currentSubscription) {
+                currentSubscription.unsubscribe();
+            }
+            stompClient.disconnect(function() {
+                log("Отключено пользователем");
+                updateStatus(false);
             });
         }
+    }
 
-        function disconnect() {
-            if (stompClient !== null) {
-                stompClient.disconnect();
+    function sendMessage() {
+        const destination = document.getElementById('sendDestination').value;
+        const payloadString = document.getElementById('messagePayload').value;
+
+        if (stompClient && stompClient.connected) {
+            try {
+                // Проверяем, что ввели валидный JSON перед отправкой
+                JSON.parse(payloadString); 
+                
+                log("Отправка сообщения на " + destination + "...");
+                stompClient.send(destination, {}, payloadString);
+            } catch (e) {
+                log("❌ Ошибка: Неверный формат JSON в поле тела сообщения!");
             }
-            document.getElementById('disconnectBtn').disabled = true;
-            document.getElementById('sendBtn').disabled = true;
-            log('Отключено');
+        } else {
+            log("❌ Ошибка: Нет подключения к серверу!");
         }
+    }
+</script>
 
-        function sendMessage() {
-            const text = document.getElementById('messageText').value;
-            
-            // Заполните поля так, как они называются в вашем CreateMessageRequest
-            const createMessageRequest = {
-                text: text,     // замените на реальное поле из вашей DTO
-                chatId: 1       // замените на реальное поле из вашей DTO
-            };
-
-            // Отправляем по префиксу /app (из конфига) + /chat.sendMessage (из контроллера)
-            stompClient.send("/app/chat.sendMessage", {}, JSON.stringify(createMessageRequest));
-            log('Отправлено: ' + JSON.stringify(createMessageRequest));
-        }
-    </script>
 </body>
 </html>

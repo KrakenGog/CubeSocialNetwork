@@ -15,6 +15,7 @@ import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import com.kraken.cube.common.filters.CustomSecurityHeadersFilter;
+import com.kraken.cube.common.util.JwtUtil;
 
 @AutoConfiguration
 public class ExceptionAutoConfiguration {
@@ -48,6 +49,11 @@ public class ExceptionAutoConfiguration {
         @Bean
         public CustomSecurityHeadersFilter customSecurityHeadersFilter(){
             return new CustomSecurityHeadersFilter();
+        }
+
+        @Bean
+        public JwtUtil jwtUtil(){
+            return new JwtUtil();
         }
     }
 

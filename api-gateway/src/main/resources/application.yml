@@ -35,11 +35,18 @@ spring:
             - Path=/api/message/**
           filters:
             - StripPrefix=1
+
         - id: message-service-websocket
-          
           uri: lb:ws://message-service 
           predicates:
             - Path=/ws/**
+          
+        - id: chat-service
+          uri: lb://chat-service
+          predicates:
+            - Path=/api/chat/**
+          filters:
+            - StripPrefix=1
           
 
 eureka:

@@ -56,7 +56,7 @@ public class GatewayExceptionHandler extends AbstractErrorWebExceptionHandler {
         ExceptionResponse responseBody = new ExceptionResponse(
                 httpStatus,
                 message,
-                request.path());
+                request.path(), null);
 
         return ServerResponse.status(status)
                 .contentType(MediaType.APPLICATION_JSON)

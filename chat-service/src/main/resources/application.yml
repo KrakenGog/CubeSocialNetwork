@@ -1,0 +1,30 @@
+spring:
+  docker:
+    compose:  
+      enabled: true
+      file: ../docker-compose.yml 
+      lifecycle-management: start_only
+  application:
+    name: chat-service
+  datasource:
+    url: jdbc:postgresql://localhost:5435/user_service
+    driver-class-name: org.postgresql.Driver
+    username: admin
+    password: root
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+
+server:
+  port: 0
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.value}
+    non-secure-port: ${server.port}
+    lease-renewal-interval-in-seconds: 5

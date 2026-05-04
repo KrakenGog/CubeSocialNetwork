@@ -125,6 +125,30 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     volumes:
       - ./message-service/build/libs/app.jar:/app/app.jar
+
+  chat-service:
+    build: ./chat-service
+    container_name: chat-service
+    
+    depends_on:
+      discovery-service:
+        condition: service_started
+      postgres-db:
+        condition: service_healthy
+
+    environment:
+      - JAVA_TOOL_OPTIONS=-Xmx512m
+      
+      - SERVER_PORT=8083
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/user_service
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
+      - SPRING_JPA_SHOW_SQL=true
+    volumes:
+      - ./chat-service/build/libs/app.jar:/app/app.jar
   kafka:
     image: bitnamilegacy/kafka:latest
     container_name: kafka

@@ -3,6 +3,7 @@ package com.kraken.cube.message.controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.kraken.cube.common.exceptionHandling.BuisnessException;
 import com.kraken.cube.common.filters.SecurityUser;
 import com.kraken.cube.message.dto.CreateMessageRequest;
 import com.kraken.cube.message.dto.MessageDto;
@@ -18,6 +19,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,16 +45,16 @@ public class MessageController {
     }
     
     @PostMapping("/send")
-    public ResponseEntity<MessageResponseDto> sendMessage(@RequestBody CreateMessageRequest request)
+    public ResponseEntity<MessageResponseDto> sendMessage(@RequestBody CreateMessageRequest request) throws BuisnessException
     {
         SecurityUser user = (SecurityUser)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return ResponseEntity.ok(messageService.createMessage(request, user.getId()));
     }
 
     @MessageMapping("/chat.sendMessage")
-    public void sendMessage(@Payload CreateMessageRequest request, Principal principal){
+    public void sendMessage(@Payload CreateMessageRequest request, Authentication authentication) throws BuisnessException{
         log.info("Send message from websocket");
-        messageService.createMessage(request, ((SecurityUser)principal).getId());
+        messageService.createMessage(request, ((SecurityUser)authentication.getPrincipal()).getId());
     }
     
 }

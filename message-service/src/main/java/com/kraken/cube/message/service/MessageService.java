@@ -6,11 +6,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.kraken.cube.common.dto.UserChatPermissionDto;
+import com.kraken.cube.common.exceptionHandling.BuisnessException;
+import com.kraken.cube.message.clients.ChatClient;
 import com.kraken.cube.message.dto.CreateMessageRequest;
 import com.kraken.cube.message.dto.MessageResponseDto;
 import com.kraken.cube.message.entity.Message;
@@ -33,12 +36,19 @@ public class MessageService {
     private final ObjectMapper objectMapper;
     private final ChatCashProperties properties;
     private final SimpMessagingTemplate messagingTemplate;
-    
+    private final ChatClient chatClient;
 
 
 
     @Transactional
-    public MessageResponseDto createMessage(CreateMessageRequest dto, long authorId) {
+    public MessageResponseDto createMessage(CreateMessageRequest dto, long authorId) throws BuisnessException {
+
+        UserChatPermissionDto permissionDto = chatClient.canUserWriteInChat(authorId, dto.chatId());
+
+        if(!permissionDto.isCanWrite()){
+            throw new BuisnessException(permissionDto.getErrorCode(), HttpStatus.BAD_REQUEST);
+        }
+        
         Message message = messageMapper.createRequestDtoToEntity(dto);
 
         message.setId(snowflakeIdGenerator.nextId());

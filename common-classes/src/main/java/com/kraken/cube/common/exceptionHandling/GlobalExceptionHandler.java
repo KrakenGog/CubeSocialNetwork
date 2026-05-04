@@ -49,9 +49,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ExceptionResponse response = null;
 
         if (status != null)
-            response = new ExceptionResponse(status, message, path);
+            response = new ExceptionResponse(status, message, path, null);
         else
-            response = new ExceptionResponse(LocalDateTime.now(), 0, "Unrecognized error", message, path);
+            response = new ExceptionResponse(LocalDateTime.now(), 0, "Unrecognized error", message, path, null);
 
         return new ResponseEntity<>(response, headers, statusCode);
     }
@@ -59,21 +59,25 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler
     public ResponseEntity<ExceptionResponse> handleAllException(Exception ex, HttpServletRequest request) {
         
-        return buildResponse(ex, request.getRequestURI(), HttpStatus.INTERNAL_SERVER_ERROR);
+        return buildResponse(ex, request.getRequestURI(), HttpStatus.INTERNAL_SERVER_ERROR, null);
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ExceptionResponse> handleAuthenticationException(AuthenticationException ex,
             HttpServletRequest request) {
-        return buildResponse(ex, request.getRequestURI(), HttpStatus.UNAUTHORIZED);
+        return buildResponse(ex, request.getRequestURI(), HttpStatus.UNAUTHORIZED, null);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ExceptionResponse> handleAccessDeniedException(AccessDeniedException ex,
             HttpServletRequest request) {
-        return buildResponse(ex, request.getRequestURI(), HttpStatus.FORBIDDEN);
+        return buildResponse(ex, request.getRequestURI(), HttpStatus.FORBIDDEN, null);
     }
 
+    @ExceptionHandler(BuisnessException.class)
+    public ResponseEntity<ExceptionResponse> handleBuisnessException(BuisnessException ex, HttpServletRequest request){
+        return buildResponse(ex, request.getRequestURI(), ex.getHttpStatus(), ex.getStatus());
+    }
     @PostConstruct
     public void init() {
         log.info("GlobalExceptionHandler succsessfuly connected");
@@ -82,7 +86,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     
 
     private ResponseEntity<ExceptionResponse> buildResponse(Exception ex, String path,
-            HttpStatus status) {
+            HttpStatus status, String buisnessStatus) {
 
         log.error("Exception in {}: {} - {}", path, ex.getClass().getSimpleName(), ex.getMessage(), ex);
         
@@ -95,6 +99,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .status(status.value())
                 .time(LocalDateTime.now())
                 .path(path)
+                .buisnessStatus(buisnessStatus)
                 .build();
 
         return new ResponseEntity<>(response, status);

@@ -1,4 +1,4 @@
-package com.kraken.cube.common.util;
+package com.kraken.cube.gateway.util;
 
 import java.util.Date;
 
@@ -14,7 +14,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 @Component
-public class JwtUtil {
+public class JwtUtilA {
     @Value("${jwt.secret}")
     private String secret;
 
@@ -51,6 +51,4 @@ public class JwtUtil {
                 .parseSignedClaims(token)
                 .getPayload();
     }
-
-    
 }
