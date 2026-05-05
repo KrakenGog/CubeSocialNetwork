@@ -31,10 +31,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
-
-        private final AuthenticationManager authenticationManager;
-        private final UserAuthRepository userAuthRepository;
-        private final JwtUtilAuth jwtUtil;
+        
         private final AuthService authService;
 
         @PostMapping("/login")
@@ -42,17 +39,7 @@ public class AuthController {
                 log.info(String.format("Request to login with name %s and password %s", request.getUsername(),
                                 request.getPassword()));
 
-                authenticationManager.authenticate(
-                                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-
-                log.info("Successful login, generating token as responce");
-
-                UserAuth auth = userAuthRepository.findByUsername(request.getUsername()).get();
-                String token = jwtUtil.generateToken(auth);
-
-                log.info("Successful token generation");
-
-                return ResponseEntity.ok(new TokenResponseDto(token));
+                return ResponseEntity.ok(authService.login(request));
         }
 
         @PostMapping("/register")
