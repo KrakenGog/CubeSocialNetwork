@@ -6,6 +6,8 @@ import java.util.Set;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
@@ -28,11 +30,15 @@ import lombok.Setter;
 @Table(name = "chats")
 public class Chat {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "chat_id")
     private long id;
 
     @Column(name = "is_group")
     private boolean isGroup;
+
+    @Column(name = "is_open")
+    private boolean isOpen;
 
     @Builder.Default
     @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL, orphanRemoval = true)
