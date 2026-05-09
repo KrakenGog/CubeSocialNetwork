@@ -48,13 +48,13 @@ public class MessageController {
     public ResponseEntity<MessageResponseDto> sendMessage(@RequestBody CreateMessageRequest request) throws BuisnessException
     {
         SecurityUser user = (SecurityUser)SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return ResponseEntity.ok(messageService.createMessage(request, user.getId()));
+        return ResponseEntity.ok(messageService.createMessage(request, user.getUserId()));
     }
 
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload CreateMessageRequest request, Authentication authentication) throws BuisnessException{
         log.info("Send message from websocket");
-        messageService.createMessage(request, ((SecurityUser)authentication.getPrincipal()).getId());
+        messageService.createMessage(request, ((SecurityUser)authentication.getPrincipal()).getUserId());
     }
     
 }

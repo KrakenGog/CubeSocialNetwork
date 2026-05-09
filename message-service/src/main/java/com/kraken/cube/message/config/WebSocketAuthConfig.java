@@ -7,19 +7,25 @@ import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.ExecutorChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
@@ -36,15 +42,14 @@ public class WebSocketAuthConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(new ChannelInterceptor() {
+        registration.interceptors(new ExecutorChannelInterceptor() {
+
             @Override
             public Message<?> preSend(Message<?> message, MessageChannel channel) {
                 StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
                 log.info("Stomp message: message type: {}", accessor.getMessageType());
-                
 
-                
                 if (StompCommand.CONNECT.equals(accessor.getCommand())) {
 
                     String authHeader = accessor.getFirstNativeHeader("Authorization");
@@ -55,11 +60,17 @@ public class WebSocketAuthConfig implements WebSocketMessageBrokerConfigurer {
                         Claims claims = jwtUtil.getAllClaimsFromToken(jwt);
 
                         String username = jwtUtil.getNameFromJwt(jwt);
-                        Integer id = claims.get("id", Integer.class);
-                        SecurityUser user = new SecurityUser(Long.valueOf(id), username);
-                        user.setId(123L);
+                        Long userId = claims.get("user-id", Long.class);
+                        Long authId = claims.get("auth-id", Long.class);
+                        List<String> rolesStr = (List<String>) claims.get("roles", List.class);
+                        List<SimpleGrantedAuthority> roles = rolesStr
+                                .stream()
+                                .map(SimpleGrantedAuthority::new)
+                                .collect(Collectors.toList());
+                        SecurityUser user = new SecurityUser(userId, authId, username, roles);
 
                         Authentication authentication = new UsernamePasswordAuthenticationToken(user, null);
+
                         accessor.setUser(authentication);
 
                     } else {
@@ -69,6 +80,23 @@ public class WebSocketAuthConfig implements WebSocketMessageBrokerConfigurer {
                 }
                 return message;
             }
+
+            @Override
+            public Message<?> beforeHandle(Message<?> message, MessageChannel channel, MessageHandler handler) {
+                StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+
+                if (accessor != null && accessor.getUser() instanceof Authentication) {
+                    SecurityContextHolder.getContext().setAuthentication((Authentication) accessor.getUser());
+                }
+                return message;
+            }
+
+            @Override
+            public void afterMessageHandled(Message<?> message, MessageChannel channel, MessageHandler handler,
+                    Exception ex) {
+                SecurityContextHolder.clearContext();
+            }
         });
+
     }
 }
